@@ -86,6 +86,10 @@ function plot_hist(hist, title, xlabel, ylabel; label=nothing, normalize_hist=fa
         hist_norm = hist
     end
 
+    if limits === (nothing, nothing)
+        limits = ((min(binedges(hist_norm)), max(binedges(hist_norm))), (0, 1.05*max(bincounts(hist_norm))))
+    end
+
     if typeof(hist) == Hist1D{Float64}
         ax = CairoMakie.Axis(fig[1,1]; xlabel, ylabel, title, yscale, limits, xtickformat)
         CairoMakie.stephist!(ax, hist_norm; label)
