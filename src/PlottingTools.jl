@@ -87,7 +87,7 @@ function plot_hist(hist, title, xlabel, ylabel; label=nothing, normalize_hist=fa
     end
 
     if limits === (nothing, nothing)
-        limits = ((min(binedges(hist_norm)), max(binedges(hist_norm))), (0, 1.05*max(bincounts(hist_norm))))
+        limits = ((minimum(binedges(hist_norm)), maximum(binedges(hist_norm))), (0, 1.05*maximum(bincounts(hist_norm))))
     end
 
     if typeof(hist) == Hist1D{Float64}
