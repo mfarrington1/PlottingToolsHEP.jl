@@ -163,7 +163,7 @@ end
 
 function multi_plot(hists, title, xlabel, ylabel, hist_labels; data_hist=nothing, data_hist_style="scatter", data_label="Data", yscale=identity, xticks=Makie.automatic,
      normalize_hists="", stack=false, limits=(nothing, nothing), plot_ratio=false, ratio_label="Data/MC", ATLAS_label=nothing, ATLAS_label_offset=(30, -20), legend_align=(valign=0.95, halign=0.95),
-    plot_errors = true)
+    plot_errors = true, color=ATLAS_colors)
 
     CairoMakie.activate!(type = "png")
     fig = CairoMakie.Figure()
@@ -179,8 +179,8 @@ function multi_plot(hists, title, xlabel, ylabel, hist_labels; data_hist=nothing
     end
 
     if stack
-        stackedhist!(ax, norm_hists, color=gaudi_colors, errorcolor=(:white, 0.0))
-        elements = [PolyElement(polycolor = gaudi_colors[i]) for i in 1:length(hist_labels)]
+        stackedhist!(ax, norm_hists; color, errorcolor=(:white, 0.0))
+        elements = [PolyElement(polycolor = color[i]) for i in 1:length(hist_labels)]
     else
 
         for (i, hist) in enumerate(norm_hists)
@@ -228,7 +228,8 @@ function multi_plot(hists, title, xlabel, ylabel, hist_labels; data_hist=nothing
     CairoMakie.current_figure()
 end
 
-function plot_signal_vs_background(signal_hists, bkg_hists, title, xlabel, ylabel, signal_labels, bkg_labels; yscale=identity, normalize_hists="", stack=false, limits=(nothing, nothing), plot_s_sqrt_b=true, ATLAS_label=nothing, ATLAS_label_offset=(200, -20))
+function plot_signal_vs_background(signal_hists, bkg_hists, title, xlabel, ylabel, signal_labels, bkg_labels; yscale=identity, normalize_hists="", stack=false, limits=(nothing, nothing), plot_s_sqrt_b=true, ATLAS_label=nothing, ATLAS_label_offset=(200, -20),
+                                    color=ATLAS_colors)
     CairoMakie.activate!(type = "png")
     fig = CairoMakie.Figure()
     ax = CairoMakie.Axis(fig[1,1]; xlabel, ylabel, title, yscale, limits)
@@ -244,8 +245,8 @@ function plot_signal_vs_background(signal_hists, bkg_hists, title, xlabel, ylabe
     end
 
     if stack
-        stackedhist!(ax, bkg_hists_norm, color=gaudi_colors, errorcolor=(:white, 0.0))
-        elements = [PolyElement(polycolor = gaudi_colors[i]) for i in 1:length(bkg_labels)]
+        stackedhist!(ax, bkg_hists_norm; color, errorcolor=(:white, 0.0))
+        elements = [PolyElement(polycolor = color[i]) for i in 1:length(bkg_labels)]
     else
 
         for hist in enumerate(bkg_hists)

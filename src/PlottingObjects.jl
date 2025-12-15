@@ -1,6 +1,8 @@
 gaudi_colors = ["#cb181d", "#fa6a4a", "#2271b5", "#bdd7e7", "#238b21", "#a1cf42",
                     "#ff8c00", "#fee147"]
 
+ATLAS_colors = ["#3f90da", "#ffa912", "#bd2001", "#94a4a2", "#842db6", "#e76400", "#717581",
+                "#92dadd", "#a96b59"]
 
 function set_ATLAS_theme()
     set_texfont_family!(FontFamily("TeXGyreHeros"))
