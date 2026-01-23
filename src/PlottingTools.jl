@@ -75,7 +75,7 @@ function pdf_plot(hists, x_axis_labels, Titles; y_axis_labels=nothing, normalize
     return
 end
 
-function plot_hist(hist, title, xlabel, ylabel; label=nothing, normalize_hist=false, xscale=identity, yscale=identity, xtickformat=Makie.automatic, colorbar_label="", colorscale=identity, limits=(nothing, nothing), ATLAS_label=nothing, ATLAS_label_offset=(30, -20))
+function plot_hist(hist, title, xlabel, ylabel; label=nothing, normalize_hist=false, xscale=identity, yscale=identity, xticks=Makie.automatic, yticks=Makie.automatic, colticks=Makie.automatic, colorbar_label="", colorscale=identity, limits=(nothing, nothing), colorrange=Makie.automatic, ATLAS_label=nothing, ATLAS_label_offset=(30, -20))
 
     CairoMakie.activate!(type = "png")
     fig = CairoMakie.Figure()
@@ -91,13 +91,13 @@ function plot_hist(hist, title, xlabel, ylabel; label=nothing, normalize_hist=fa
     end
 
     if typeof(hist) == Hist1D{Float64}
-        ax = CairoMakie.Axis(fig[1,1]; xlabel, ylabel, title, yscale, limits, xtickformat)
+        ax = CairoMakie.Axis(fig[1,1]; xlabel, ylabel, title, yscale, limits, xticks, yticks)
         CairoMakie.stephist!(ax, hist_norm; label)
         CairoMakie.errorbars!(ax, hist_norm; whiskerwidth=6)
             
     elseif typeof(hist) == Hist2D{Float64}
-        ax, heatmap = CairoMakie.heatmap(fig[1,1], hist_norm, axis=(;title, xlabel, ylabel, xscale, yscale); colorscale)
-        CairoMakie.Colorbar(fig[1,2], heatmap; label=colorbar_label, scale=log10)
+        ax, heatmap = CairoMakie.heatmap(fig[1,1], hist_norm, axis=(;title, xlabel, ylabel, xscale, yscale, xticks, yticks); colorscale, colorrange)
+        CairoMakie.Colorbar(fig[1,2], heatmap; label=colorbar_label, ticks=colticks)
     end
 
     if label !== nothing
@@ -112,13 +112,13 @@ function plot_hist(hist, title, xlabel, ylabel; label=nothing, normalize_hist=fa
 end
 
 
-function plot_comparison(hist1, hist2, title, xlabel, ylabel, hist1_label, hist2_label, comp_label; normalize_hists=true, yscale=identity, xtickformat=Makie.automatic, plot_as_data=[false, false], limits=(nothing, nothing), ATLAS_label=nothing, ATLAS_label_offset=(30, -20))
+function plot_comparison(hist1, hist2, title, xlabel, ylabel, hist1_label, hist2_label, comp_label; normalize_hists=true, yscale=identity, xticks=Makie.automatic, yticks=Makie.automatic, plot_as_data=[false, false], limits=(nothing, nothing), ATLAS_label=nothing, ATLAS_label_offset=(30, -20))
 
     #Plot the histograms
     
     CairoMakie.activate!(type = "png")
     fig = CairoMakie.Figure()
-    ax = CairoMakie.Axis(fig[1,1]; xlabel, ylabel, title, yscale, limits, xtickformat)
+    ax = CairoMakie.Axis(fig[1,1]; xlabel, ylabel, title, yscale, limits, xticks, yticks)
 
     if normalize_hists
         hist1_norm = normalize(hist1)
@@ -161,13 +161,13 @@ function plot_comparison(hist1, hist2, title, xlabel, ylabel, hist1_label, hist2
 
 end
 
-function multi_plot(hists, title, xlabel, ylabel, hist_labels; data_hist=nothing, data_hist_style="scatter", data_label="Data", yscale=identity, xticks=Makie.automatic,
+function multi_plot(hists, title, xlabel, ylabel, hist_labels; data_hist=nothing, data_hist_style="scatter", data_label="Data", yscale=identity, xticks=Makie.automatic, yticks=Makie.automatic,
      normalize_hists="", stack=false, limits=(nothing, nothing), plot_ratio=false, ratio_label="Data/MC", ATLAS_label=nothing, ATLAS_label_offset=(30, -20), legend_align=(valign=0.95, halign=0.95),
     plot_errors = true, color=ATLAS_colors)
 
     CairoMakie.activate!(type = "png")
     fig = CairoMakie.Figure()
-    ax = CairoMakie.Axis(fig[1,1]; xlabel, ylabel, title, yscale, limits, xticks)
+    ax = CairoMakie.Axis(fig[1,1]; xlabel, ylabel, title, yscale, limits, xticks, yticks)
 
     if normalize_hists == "individual"
         norm_hists = [normalize(hist) for hist in hists]
@@ -228,11 +228,11 @@ function multi_plot(hists, title, xlabel, ylabel, hist_labels; data_hist=nothing
     CairoMakie.current_figure()
 end
 
-function plot_signal_vs_background(signal_hists, bkg_hists, title, xlabel, ylabel, signal_labels, bkg_labels; yscale=identity, normalize_hists="", stack=false, limits=(nothing, nothing), plot_s_sqrt_b=true, ATLAS_label=nothing, ATLAS_label_offset=(200, -20),
+function plot_signal_vs_background(signal_hists, bkg_hists, title, xlabel, ylabel, bkg_labels; yscale=identity, xticks=Makie.automatic, yticks=Makie.automatic, normalize_hists="", stack=false, limits=(nothing, nothing), plot_s_sqrt_b=true, ATLAS_label=nothing, ATLAS_label_offset=(200, -20),
                                     color=ATLAS_colors)
     CairoMakie.activate!(type = "png")
     fig = CairoMakie.Figure()
-    ax = CairoMakie.Axis(fig[1,1]; xlabel, ylabel, title, yscale, limits)
+    ax = CairoMakie.Axis(fig[1,1]; xlabel, ylabel, title, yscale, limits, xticks, yticks)
 
     if normalize_hists == "total"
         tot_bkg_integral = sum(integral(hist) for hist in bkg_hists)
