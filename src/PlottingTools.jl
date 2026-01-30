@@ -162,7 +162,7 @@ function plot_comparison(hist1, hist2, title, xlabel, ylabel, hist1_label, hist2
 end
 
 function multi_plot(hists, title, xlabel, ylabel, hist_labels; data_hist=nothing, data_hist_style="scatter", data_label="Data", yscale=identity, xticks=Makie.automatic, yticks=Makie.automatic,
-     normalize_hists="", stack=false, limits=(nothing, nothing), plot_ratio=false, ratio_label="Data/MC", ATLAS_label=nothing, ATLAS_label_offset=(30, -20), legend_align=(valign=0.95, halign=0.95),
+     normalize_hists="", stack=false, limits=(nothing, nothing), plot_ratio=false, ratio_label="Data/MC", ATLAS_label=nothing, ATLAS_label_offset=(30, -20), energy=13.6, legend_align=(valign=0.95, halign=0.95),
     plot_errors = true, color=ATLAS_colors)
 
     CairoMakie.activate!(type = "png")
@@ -184,9 +184,9 @@ function multi_plot(hists, title, xlabel, ylabel, hist_labels; data_hist=nothing
     else
 
         for (i, hist) in enumerate(norm_hists)
-            CairoMakie.stephist!(ax, hist; clamp_bincounts=true, linecolor=color)
+            CairoMakie.stephist!(ax, hist; clamp_bincounts=true, color=color[i])
             if plot_errors
-                CairoMakie.errorbars!(ax, hist; whiskerwidth=6, clamp_errors=true, linecolor=color)
+                CairoMakie.errorbars!(ax, hist; whiskerwidth=6, clamp_errors=true, color=color[i])
             end
         end
         elements = [LineElement(linecolor = color[i]) for i in 1:length(hist_labels)]
@@ -222,7 +222,7 @@ function multi_plot(hists, title, xlabel, ylabel, hist_labels; data_hist=nothing
     Legend(fig[1,1], elements, hist_labels, tellheight=false, tellwidth=false, valign = legend_align.valign, halign = legend_align.halign)
 
     if ATLAS_label !== nothing
-        add_ATLAS_internal!(ax, ATLAS_label; offset=ATLAS_label_offset)
+        add_ATLAS_internal!(ax, ATLAS_label; energy, offset=ATLAS_label_offset)
     end
 
     CairoMakie.current_figure()

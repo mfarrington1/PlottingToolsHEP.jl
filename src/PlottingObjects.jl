@@ -37,7 +37,7 @@ function add_ATLAS_internal!(ax, sec_text; offset=(250, -20), fontsize=20, energ
     )
 
     text!(ax, 0, 1; text=L"$\fontfamily{NewComputerModern}\mathbf{\sqrt{s}}$", align=(:left, :top), offset=(offset[1], offset[2] - 30), space=:relative, fontsize=15)
-    text!(ax, 0, 1; text=L" = "*String(energy)*" TeV", align=(:left, :top), offset=(offset[1]+25, offset[2] - 30), space=:relative, fontsize=15)
+    text!(ax, 0, 1; text=L" = "*string(energy)*" TeV", align=(:left, :top), offset=(offset[1]+25, offset[2] - 30), space=:relative, fontsize=15)
 
     nothing
 end
