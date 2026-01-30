@@ -184,12 +184,12 @@ function multi_plot(hists, title, xlabel, ylabel, hist_labels; data_hist=nothing
     else
 
         for (i, hist) in enumerate(norm_hists)
-            CairoMakie.stephist!(ax, hist; clamp_bincounts=true)
+            CairoMakie.stephist!(ax, hist; clamp_bincounts=true, linecolor=color)
             if plot_errors
-                CairoMakie.errorbars!(ax, hist; whiskerwidth=6, clamp_errors=true)
+                CairoMakie.errorbars!(ax, hist; whiskerwidth=6, clamp_errors=true, linecolor=color)
             end
         end
-        elements = [LineElement(linecolor = CairoMakie.Makie.wong_colors()[i]) for i in 1:length(hist_labels)]
+        elements = [LineElement(linecolor = color[i]) for i in 1:length(hist_labels)]
     end
 
     if data_hist !== nothing
