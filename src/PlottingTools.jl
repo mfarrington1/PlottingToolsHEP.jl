@@ -75,7 +75,8 @@ function pdf_plot(hists, x_axis_labels, Titles; y_axis_labels=nothing, normalize
     return
 end
 
-function plot_hist(hist, title, xlabel, ylabel; label=nothing, normalize_hist=false, xscale=identity, yscale=identity, xticks=Makie.automatic, yticks=Makie.automatic, colticks=Makie.automatic, colorbar_label="", colorscale=identity, limits=(nothing, nothing), colorrange=Makie.automatic, ATLAS_label=nothing, ATLAS_label_offset=(30, -20))
+function plot_hist(hist, title, xlabel, ylabel; label=nothing, normalize_hist=false, xscale=identity, yscale=identity, xticks=Makie.automatic, yticks=Makie.automatic, colticks=Makie.automatic, colorbar_label="", colorscale=identity, limits=(nothing, nothing), 
+                    colorrange=Makie.automatic, ATLAS_label=nothing, ATLAS_label_offset=(30, -20), energy=13.6)
 
     CairoMakie.activate!(type = "png")
     fig = CairoMakie.Figure()
@@ -105,14 +106,15 @@ function plot_hist(hist, title, xlabel, ylabel; label=nothing, normalize_hist=fa
     end
 
     if ATLAS_label !== nothing
-        add_ATLAS_internal!(ax, ATLAS_label; offset=ATLAS_label_offset)
+        add_ATLAS_internal!(ax, ATLAS_label; offset=ATLAS_label_offset, energy)
     end
 
     current_figure()
 end
 
 
-function plot_comparison(hist1, hist2, title, xlabel, ylabel, hist1_label, hist2_label, comp_label; normalize_hists=true, yscale=identity, xticks=Makie.automatic, yticks=Makie.automatic, plot_as_data=[false, false], limits=(nothing, nothing), ATLAS_label=nothing, ATLAS_label_offset=(30, -20))
+function plot_comparison(hist1, hist2, title, xlabel, ylabel, hist1_label, hist2_label, comp_label; normalize_hists=true, yscale=identity, xticks=Makie.automatic, yticks=Makie.automatic, plot_as_data=[false, false], limits=(nothing, nothing), 
+                            ATLAS_label=nothing, ATLAS_label_offset=(30, -20), energy=13)
 
     #Plot the histograms
     
@@ -154,7 +156,7 @@ function plot_comparison(hist1, hist2, title, xlabel, ylabel, hist1_label, hist2
     CairoMakie.rowsize!(fig.layout, 2, CairoMakie.Makie.Relative(1/6))
 
     if ATLAS_label !== nothing
-        add_ATLAS_internal!(ax, ATLAS_label; offset=ATLAS_label_offset)
+        add_ATLAS_internal!(ax, ATLAS_label; offset=ATLAS_label_offset, energy)
     end
 
     CairoMakie.current_figure()
@@ -162,7 +164,7 @@ function plot_comparison(hist1, hist2, title, xlabel, ylabel, hist1_label, hist2
 end
 
 function multi_plot(hists, title, xlabel, ylabel, hist_labels; data_hist=nothing, data_hist_style="scatter", data_label="Data", yscale=identity, xticks=Makie.automatic, yticks=Makie.automatic,
-     normalize_hists="", stack=false, limits=(nothing, nothing), plot_ratio=false, ratio_label="Data/MC", ATLAS_label=nothing, ATLAS_label_offset=(30, -20), energy=13.6, legend_align=(valign=0.95, halign=0.95),
+     normalize_hists="", stack=false, limits=((minimum(binedges(hists[1])), maximum(binedges(hists[1]))), (0, 1.05*maximum(bincounts(sum(hists))))), plot_ratio=false, ratio_label="Data/MC", ATLAS_label=nothing, ATLAS_label_offset=(30, -20), energy=13.6, legend_align=(valign=0.95, halign=0.95),
     plot_errors = true, color=ATLAS_colors)
 
     CairoMakie.activate!(type = "png")
