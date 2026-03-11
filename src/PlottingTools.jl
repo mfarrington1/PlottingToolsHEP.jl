@@ -1,297 +1,275 @@
-"""
-    pdf_plot(hists::Vector{Union{Hist1D, Hist2D}}, x_axis_labels::Vector{String}, Titles::Vector{String}; y_axis_labels=nothing, normalize_hists=true, ofile="kinematic_histograms.pdf")
-    Loops throug the histograms in hists and plots them in a PDF with name `ofile`. If normalize_hist is set then the histogras are normalized.
-"""
-function pdf_plot(hists, x_axis_labels, Titles; y_axis_labels=nothing, normalize_hists=true, ofile="kinematic_histograms.pdf")
-    
-    #Check if we have the required number of labels and Titles
+# ── internal helper ──────────────────────────────────────────────────────────
 
-    if length(hists) != length(Titles)
-        println("Number of histograms and titles do not match")
-        return
-    end
-
-    if length(hists) != length(x_axis_labels)
-        println("Number of histograms and x_axis_labels do not match")
-        return
-    end
-
-    if y_axis_labels !== nothing
-        if count(x -> x isa Hist2D, hists) != length(y_axis_labels)
-            println("Number of 2D histograms and y_axis_labels do not match")
-            return
-        end
-    end
-
-    if isfile(ofile)
-        rm(ofile)
-    end
-
-    CairoMakie.activate!(type = "pdf")
-    index_2d_label = 1
-
-    for (i, hist) in enumerate(hists)
-
-        if normalize_hists
-            hist_norm = normalize(hist)
-        else
-            hist_norm = hist
-        end
-
-        if(typeof(hist) == Hist1D{Float64})
-
-            fig = CairoMakie.Figure()
-
-            if normalize_hists
-                ax = CairoMakie.Axis(fig[1,1], xlabel=x_axis_labels[i], ylabel="Normalized Counts", title=Titles[i])
-            else
-                ax = CairoMakie.Axis(fig[1,1], xlabel=x_axis_labels[i], ylabel="Counts", title=Titles[i])
-            end
-
-            CairoMakie.stephist!(ax, hist_norm)
-            CairoMakie.errorbars!(ax, hist_norm; whiskerwidth=6)
-            statbox!(fig, hist)
-            CairoMakie.save("temp.pdf", fig)
-            append_pdf!(ofile, "temp.pdf", cleanup=true)    
-
-        else
-            fig = CairoMakie.Figure()
-            axis_heatmap, heatmap = CairoMakie.heatmap(fig[1,1], hist_norm, axis=(title=Titles[i], xlabel=x_axis_labels[i], ylabel=y_axis_labels[index_2d_label], ))
-            if normalize_hists
-                CairoMakie.Colorbar(fig[1,2], heatmap, label="Normalized Counts")
-            else
-                CairoMakie.Colorbar(fig[1,2], heatmap, label="Normalized Counts")
-            end
-
-            index_2d_label += 1
-            statbox!(fig, hist; position=(1,3))
-            CairoMakie.save("temp.pdf", fig)
-            append_pdf!(ofile, "temp.pdf", cleanup=true)    
-        end
-    end
-
-    
-
-    return
+# Add a statistics box to a figure layout cell.
+function statbox!(fig, hist::Hist1D; position=(1, 2))
+    bc      = bincounts(hist)
+    centers = bincenters(hist)
+    n  = sum(bc)
+    μ  = n > 0 ? mean(hist) : 0.0
+    σ  = n > 0 ? std(hist) : 0.0
+    stats = "Entries: $(Int(round(n)))\nMean: $(round(μ, digits=4))\nStd Dev: $(round(σ, digits=4))"
+    Label(fig[position...], stats; tellwidth=false, justification=:left)
 end
 
-function plot_hist(hist, title, xlabel, ylabel; label=nothing, normalize_hist=false, xscale=identity, yscale=identity, xticks=Makie.automatic, yticks=Makie.automatic, colticks=Makie.automatic, colorbar_label="", colorscale=identity, limits=(nothing, nothing), 
-                    colorrange=Makie.automatic, ATLAS_label=nothing, ATLAS_label_offset=(30, -20), energy=13.6)
+function statbox!(fig, hist::Hist2D; position=(1, 2))
+    n = sum(bincounts(hist))
+    Label(fig[position...], "Entries: $(Int(round(n)))"; tellwidth=false, justification=:left)
+end
 
-    CairoMakie.activate!(type = "png")
+
+"""
+    plot_hist(hist, title, xlabel, ylabel;
+              label=nothing, normalize_hist=false,
+              colticks=Makie.automatic, colorbar_label="",
+              colorscale=identity, colorrange=Makie.automatic,
+              options=HEPPlotOptions())
+
+Plot a single `Hist1D` or `Hist2D` and return the `Figure`.
+
+`Hist2D` entries are displayed as heatmaps with a colour bar; use `colticks`,
+`colorbar_label`, `colorscale`, and `colorrange` to control it.
+Common axis options (scale, ticks, limits, ATLAS label) are bundled in `options`.
+"""
+function plot_hist(hist, title, xlabel, ylabel;
+                   label=nothing, normalize_hist=false,
+                   colticks=Makie.automatic, colorbar_label="",
+                   colorscale=identity, colorrange=Makie.automatic,
+                   options=HEPPlotOptions())
+
+    CairoMakie.activate!(type="png")
     fig = CairoMakie.Figure()
+    hist_norm = normalize_hist ? normalize(hist) : hist
 
-    if normalize_hist
-        hist_norm = normalize(hist)
-    else
-        hist_norm = hist
-    end
-
-    if limits === (nothing, nothing)
-        limits = ((minimum(binedges(hist_norm)), maximum(binedges(hist_norm))), (0, 1.05*maximum(bincounts(hist_norm))))
-    end
-
-    if typeof(hist) == Hist1D{Float64}
-        ax = CairoMakie.Axis(fig[1,1]; xlabel, ylabel, title, yscale, limits, xticks, yticks)
+    if hist isa Hist1D
+        limits = options.limits === (nothing, nothing) ?
+            ((minimum(binedges(hist_norm)), maximum(binedges(hist_norm))),
+             (0, 1.05 * maximum(bincounts(hist_norm)))) :
+            options.limits
+        ax = CairoMakie.Axis(fig[1, 1]; xlabel, ylabel, title,
+                              yscale=options.yscale, limits,
+                              xticks=options.xticks, yticks=options.yticks)
         CairoMakie.stephist!(ax, hist_norm; label)
         CairoMakie.errorbars!(ax, hist_norm; whiskerwidth=6)
-            
-    elseif typeof(hist) == Hist2D{Float64}
-        ax, heatmap = CairoMakie.heatmap(fig[1,1], hist_norm, axis=(;title, xlabel, ylabel, xscale, yscale, xticks, yticks); colorscale, colorrange)
-        CairoMakie.Colorbar(fig[1,2], heatmap; label=colorbar_label, ticks=colticks)
+        label !== nothing && CairoMakie.axislegend()
+
+    elseif hist isa Hist2D
+        ax, hm = CairoMakie.heatmap(fig[1, 1], hist_norm;
+                     axis=(; title, xlabel, ylabel,
+                             xscale=options.xscale, yscale=options.yscale,
+                             xticks=options.xticks, yticks=options.yticks);
+                     colorscale, colorrange)
+        CairoMakie.Colorbar(fig[1, 2], hm; label=colorbar_label, ticks=colticks)
     end
 
-    if label !== nothing
-        CairoMakie.axislegend()
-    end
-
-    if ATLAS_label !== nothing
-        add_ATLAS_internal!(ax, ATLAS_label; offset=ATLAS_label_offset, energy)
-    end
-
-    current_figure()
-end
-
-
-function plot_comparison(hist1, hist2, title, xlabel, ylabel, hist1_label, hist2_label, comp_label; normalize_hists=true, yscale=identity, xticks=Makie.automatic, yticks=Makie.automatic, plot_as_data=[false, false], limits=(nothing, nothing), 
-                            ATLAS_label=nothing, ATLAS_label_offset=(30, -20), energy=13)
-
-    #Plot the histograms
-    
-    CairoMakie.activate!(type = "png")
-    fig = CairoMakie.Figure()
-    ax = CairoMakie.Axis(fig[1,1]; xlabel, ylabel, title, yscale, limits, xticks, yticks)
-
-    if normalize_hists
-        hist1_norm = normalize(hist1)
-        hist2_norm = normalize(hist2)
-    else
-        hist1_norm = hist1
-        hist2_norm = hist2
-    end
-
-    CairoMakie.errorbars!(ax, hist1_norm; whiskerwidth=6, color=CairoMakie.Makie.wong_colors()[2])
-
-    if plot_as_data[1]
-        CairoMakie.scatter!(ax, hist1_norm; label=hist1_label, color=CairoMakie.Makie.wong_colors()[2])
-    else
-       CairoMakie.stephist!(ax, hist1_norm; label=hist1_label, color=CairoMakie.Makie.wong_colors()[2])
-    end
-    
-    CairoMakie.errorbars!(ax, hist2_norm; whiskerwidth=6, color=CairoMakie.Makie.wong_colors()[1])
-    
-    if plot_as_data[2]
-        CairoMakie.scatter!(ax, hist2_norm; label=hist2_label, color=CairoMakie.Makie.wong_colors()[1])
-    else
-        CairoMakie.stephist!(ax, hist2_norm, label=hist2_label, color=CairoMakie.Makie.wong_colors()[1])
-    end
-
-    CairoMakie.axislegend()
-
-    ratioax = CairoMakie.Axis(fig[2, 1]; xlabel, ylabel=comp_label, tellwidth=true)
-    FHist.ratiohist!(ratioax, hist2_norm/hist1_norm; color=CairoMakie.Makie.wong_colors()[2])
-    CairoMakie.ylims!(0.5, 1.5)
-    CairoMakie.linkxaxes!(ratioax, ax)
-    CairoMakie.hidexdecorations!(ax; minorticks=false, ticks=false)
-    CairoMakie.rowsize!(fig.layout, 2, CairoMakie.Makie.Relative(1/6))
-
-    if ATLAS_label !== nothing
-        add_ATLAS_internal!(ax, ATLAS_label; offset=ATLAS_label_offset, energy)
+    if options.ATLAS_label !== nothing
+        add_ATLAS_internal!(ax, options.ATLAS_label;
+                            offset=options.ATLAS_label_offset, energy=options.energy)
     end
 
     CairoMakie.current_figure()
-
 end
 
-function multi_plot(hists, title, xlabel, ylabel, hist_labels; data_hist=nothing, data_hist_style="scatter", data_label="Data", yscale=identity, xticks=Makie.automatic, yticks=Makie.automatic,
-     normalize_hists="", stack=false, limits=((minimum(binedges(hists[1])), maximum(binedges(hists[1]))), (0, 1.05*maximum(bincounts(sum(hists))))), plot_ratio=false, ratio_label="Data/MC", ATLAS_label=nothing, ATLAS_label_offset=(30, -20), energy=13.6, legend_align=(valign=0.95, halign=0.95),
-    plot_errors = true, color=ATLAS_colors)
+"""
+    multi_plot(hists, title, xlabel, ylabel, hist_labels;
+               signal_hists=nothing, signal_labels=String[],
+               data_hist=nothing, data_hist_style="scatter", data_label="Data",
+               normalize_hists="", stack=false,
+               lower_panel=:none, ratio_label="Data/MC",
+               plot_errors=true, color=ATLAS_colors,
+               legend_position=:inside,
+               legend_align=(valign=0.95, halign=0.95),
+               options=HEPPlotOptions())
 
-    CairoMakie.activate!(type = "png")
-    fig = CairoMakie.Figure()
-    ax = CairoMakie.Axis(fig[1,1]; xlabel, ylabel, title, yscale, limits, xticks, yticks)
+Overlay multiple histograms on one axis and return the `Figure`.
 
+- `normalize_hists`: `""` (none), `"individual"` (each normalized to 1), or
+  `"total"` (all scaled to a common integral).
+- `stack`: if `true`, draw background histograms as a stacked histogram using `stackedhist!`.
+- `signal_hists` / `signal_labels`: optional second group drawn with dashed lines and
+  individually normalised when `normalize_hists="total"`. When provided, the legend is
+  placed to the side unless `legend_position=:inside`.
+- `data_hist`: optional data histogram drawn on top in black.
+- `lower_panel`: controls the sub-panel drawn below the main axis:
+  - `:none` – no sub-panel (default)
+  - `:ratio` – Data/MC ratio panel (requires `data_hist`); label set by `ratio_label`
+  - `:s_sqrt_b` – cumulative S/√B panel (requires `signal_hists`)
+- `color`: vector of colours matched to `hist_labels` (default: `ATLAS_colors`).
+- `legend_position`: `:inside` (default, overlaid on axis) or `:side` (fig[1,2]).
+"""
+function multi_plot(hists, title, xlabel, ylabel, hist_labels;
+                    signal_hists=nothing, signal_labels=String[],
+                    data_hist=nothing, data_hist_style="scatter", data_label="Data",
+                    normalize_hists="", stack=false,
+                    lower_panel=:none, ratio_label="Data/MC",
+                    plot_errors=true, color=ATLAS_colors,
+                    legend_position=:inside,
+                    legend_align=(valign=0.95, halign=0.95),
+                    options=HEPPlotOptions())
+
+    CairoMakie.activate!(type="png")
+    fig    = CairoMakie.Figure()
+    limits = options.limits === (nothing, nothing) ?
+        ((minimum(binedges(hists[1])), maximum(binedges(hists[1]))),
+         (0, 1.05 * maximum(bincounts(sum(hists))))) :
+        options.limits
+    ax = CairoMakie.Axis(fig[1, 1]; xlabel, ylabel, title,
+                         yscale=options.yscale, limits,
+                         xticks=options.xticks, yticks=options.yticks)
+
+    # ── normalise background/main histograms ──────────────────────────────────
     if normalize_hists == "individual"
-        norm_hists = [normalize(hist) for hist in hists]
+        norm_hists = [normalize(h) for h in hists]
     elseif normalize_hists == "total"
-        tot_integral = sum(integral(hist) for hist in hists)
-        norm_hists = [hist * (1/tot_integral) for hist in hists]
+        tot_integral = sum(integral(h) for h in hists)
+        norm_hists   = [h * (1 / tot_integral) for h in hists]
     else
         norm_hists = hists
     end
 
+    # ── draw main histograms ──────────────────────────────────────────────────
     if stack
         stackedhist!(ax, norm_hists; color, errorcolor=(:white, 0.0))
-        elements = [PolyElement(polycolor = color[i]) for i in 1:length(hist_labels)]
+        elements = [PolyElement(polycolor=color[i]) for i in 1:length(hist_labels)]
     else
-
         for (i, hist) in enumerate(norm_hists)
             CairoMakie.stephist!(ax, hist; clamp_bincounts=true, color=color[i])
-            if plot_errors
-                CairoMakie.errorbars!(ax, hist; whiskerwidth=6, clamp_errors=true, color=color[i])
-            end
+            plot_errors && CairoMakie.errorbars!(ax, hist; whiskerwidth=6, clamp_errors=true, color=color[i])
         end
-        elements = [LineElement(linecolor = color[i]) for i in 1:length(hist_labels)]
+        elements = [LineElement(linecolor=color[i]) for i in 1:length(hist_labels)]
     end
 
-    if data_hist !== nothing
-        if normalize_hists == "individual" || normalize_hists == "total"
-            data_hist_norm = normalize(data_hist)
-        else
-            data_hist_norm = data_hist
+    # ── draw signal histograms (dashed) ───────────────────────────────────────
+    norm_signal_hists = nothing
+    if signal_hists !== nothing
+        norm_signal_hists = normalize_hists != "" ?
+            [normalize(h) for h in signal_hists] : signal_hists
+        n_main = length(hist_labels)
+        for (i, hist) in enumerate(norm_signal_hists)
+            c = color[mod1(n_main + i, length(color))]
+            CairoMakie.stephist!(ax, hist; clamp_bincounts=true, color=c, linestyle=:dash)
+            push!(elements, LineElement(linecolor=c, linestyle=:dash))
         end
+    end
 
+    # ── draw data histogram ───────────────────────────────────────────────────
+    all_labels = vcat(hist_labels, signal_hists !== nothing ? signal_labels : String[])
+    if data_hist !== nothing
+        data_hist_norm = (normalize_hists in ("individual", "total")) ?
+            normalize(data_hist) : data_hist
         if data_hist_style == "scatter"
             CairoMakie.scatter!(ax, data_hist_norm; color=:black)
-            elements = vcat(elements, MarkerElement(marker = :circle, markercolor = :black))
+            elements = vcat(elements, MarkerElement(marker=:circle, markercolor=:black))
         elseif data_hist_style == "stephist"
-            CairoMakie.stephist!(ax, data_hist_norm; label=data_label, color=:black)
-            elements = vcat(elements, LineElement(linecolor = :black))
+            CairoMakie.stephist!(ax, data_hist_norm; color=:black)
+            elements = vcat(elements, LineElement(linecolor=:black))
         end
-        push!(hist_labels, data_label)
-
-        if plot_ratio
-            CairoMakie.errorbars!(ax, data_hist; whiskerwidth=6, clamp_errors=true, color=:black)
-            ratioax = CairoMakie.Axis(fig[2, 1]; xlabel, ylabel=ratio_label, tellwidth=true)
-            FHist.ratiohist!(ratioax, data_hist_norm/sum(norm_hists); color=CairoMakie.Makie.wong_colors()[2])
-            CairoMakie.ylims!(0.5, 1.5)
-            CairoMakie.linkxaxes!(ratioax, ax)
-            CairoMakie.hidexdecorations!(ax; minorticks=false, ticks=false)
-            CairoMakie.rowsize!(fig.layout, 2, CairoMakie.Makie.Relative(1/6))
-        end
+        push!(all_labels, data_label)
     end
 
-    Legend(fig[1,1], elements, hist_labels, tellheight=false, tellwidth=false, valign = legend_align.valign, halign = legend_align.halign)
+    # ── legend ────────────────────────────────────────────────────────────────
+    if legend_position === :side
+        Legend(fig[1, 2], elements, all_labels, "Legend")
+    else
+        Legend(fig[1, 1], elements, all_labels;
+               tellheight=false, tellwidth=false,
+               valign=legend_align.valign, halign=legend_align.halign)
+    end
 
-    if ATLAS_label !== nothing
-        add_ATLAS_internal!(ax, ATLAS_label; energy, offset=ATLAS_label_offset)
+    # ── lower panel ───────────────────────────────────────────────────────────
+    if lower_panel === :ratio && data_hist !== nothing
+        data_hist_norm = (normalize_hists in ("individual", "total")) ?
+            normalize(data_hist) : data_hist
+        CairoMakie.errorbars!(ax, data_hist; whiskerwidth=6, clamp_errors=true, color=:black)
+        ratioax = CairoMakie.Axis(fig[2, 1]; xlabel, ylabel=ratio_label, tellwidth=true)
+        FHist.ratiohist!(ratioax, data_hist_norm / sum(norm_hists);
+                         color=CairoMakie.Makie.wong_colors()[2])
+        CairoMakie.ylims!(ratioax, 0.5, 1.5)
+        CairoMakie.linkxaxes!(ratioax, ax)
+        CairoMakie.hidexdecorations!(ax; minorticks=false, ticks=false)
+        CairoMakie.rowsize!(fig.layout, 2, CairoMakie.Makie.Relative(1 / 6))
+
+    elseif lower_panel === :s_sqrt_b && norm_signal_hists !== nothing
+        ratioax = CairoMakie.Axis(fig[2, 1]; xlabel,
+                                  ylabel=L"\fontfamily{TeXGyreHeros} S / \sqrt{B}",
+                                  tellwidth=true)
+        signal_counts = reduce(.+, bincounts(h) for h in norm_signal_hists)
+        bkg_counts    = reduce(.+, bincounts(h) for h in norm_hists)
+        centers       = bincenters(norm_signal_hists[1])
+        edges         = binedges(norm_signal_hists[1])
+        sig_values    = [sum(signal_counts[i:end]) / sqrt(max(sum(bkg_counts[i:end]), 1e-10))
+                         for i in eachindex(centers)]
+        CairoMakie.stairs!(ratioax, collect(edges), vcat(sig_values, sig_values[end]);
+                           color=CairoMakie.Makie.wong_colors()[2])
+        CairoMakie.linkxaxes!(ratioax, ax)
+        CairoMakie.hidexdecorations!(ax; minorticks=false, ticks=false)
+        CairoMakie.rowsize!(fig.layout, 2, CairoMakie.Makie.Relative(1 / 5))
+    end
+
+    if options.ATLAS_label !== nothing
+        add_ATLAS_internal!(ax, options.ATLAS_label;
+                            energy=options.energy, offset=options.ATLAS_label_offset)
     end
 
     CairoMakie.current_figure()
 end
 
-function plot_signal_vs_background(signal_hists, bkg_hists, title, xlabel, ylabel, bkg_labels; yscale=identity, xticks=Makie.automatic, yticks=Makie.automatic, normalize_hists="", stack=false, limits=(nothing, nothing), plot_s_sqrt_b=true, ATLAS_label=nothing, ATLAS_label_offset=(200, -20),
-                                    color=ATLAS_colors)
-    CairoMakie.activate!(type = "png")
-    fig = CairoMakie.Figure()
-    ax = CairoMakie.Axis(fig[1,1]; xlabel, ylabel, title, yscale, limits, xticks, yticks)
+"""
+    plot_comparison(hist1, hist2, title, xlabel, ylabel,
+                    hist1_label, hist2_label, comp_label;
+                    normalize_hists=true, plot_as_data=[false, false],
+                    options=HEPPlotOptions())
 
-    if normalize_hists == "total"
-        tot_bkg_integral = sum(integral(hist) for hist in bkg_hists)
-        bkg_hists_norm = [hist * (1/tot_bkg_integral) for hist in bkg_hists]
+Plot two histograms overlaid with a ratio panel below and return the `Figure`.
 
-        signal_hists_norm = [normalize(hist) for hist in signal_hists]
-    else
-        bkg_hists_norm = bkg_hists
-        signal_hists_norm = signal_hists
-    end
+Set `plot_as_data[i] = true` to draw the i-th histogram as scatter points instead
+of a step histogram.
 
-    if stack
-        stackedhist!(ax, bkg_hists_norm; color, errorcolor=(:white, 0.0))
-        elements = [PolyElement(polycolor = color[i]) for i in 1:length(bkg_labels)]
-    else
+!!! note
+    This is a convenience wrapper around [`multi_plot`](@ref). For more control
+    (stacking, signal overlay, S/√B panel) use `multi_plot` directly.
+"""
+function plot_comparison(hist1, hist2, title, xlabel, ylabel,
+                         hist1_label, hist2_label, comp_label;
+                         normalize_hists=true, plot_as_data=[false, false],
+                         options=HEPPlotOptions())
+    norm = normalize_hists ? "individual" : ""
+    style2 = plot_as_data[2] ? "scatter" : "stephist"
+    # hist1 is the reference; hist2 is treated as the "data" overlay so the
+    # ratio panel shows hist2/hist1 (equivalent to data/MC with one MC sample).
+    multi_plot([hist1], title, xlabel, ylabel, [hist1_label];
+               data_hist=hist2, data_hist_style=style2, data_label=hist2_label,
+               normalize_hists=norm,
+               plot_errors=true,
+               lower_panel=:ratio, ratio_label=comp_label,
+               options=options)
+end
 
-        for hist in enumerate(bkg_hists)
-            CairoMakie.stephist!(ax, hist; clamp_bincounts=true)
-            CairoMakie.errorbars!(ax, hist; whiskerwidth=6, clamp_errors=true)
-        end
+"""
+    plot_signal_vs_background(signal_hists, bkg_hists, title, xlabel, ylabel,
+                              signal_labels, bkg_labels;
+                              normalize_hists="", stack=false,
+                              plot_s_sqrt_b=true, color=ATLAS_colors,
+                              options=HEPPlotOptions())
 
-        sum_bkg = sum(bkg_hists_norm)
-        CairoMakie.hist!(ax, sum_bkg; color=(:gray, 0.3))
-        elements = [LineElement(linecolor = CairoMakie.Makie.wong_colors()[i]) for i in 1:length(bkg_labels)]
-        elements = vcat(elements, PolyElement(polycolor = (:gray, 0.3)))
-        push!(bkg_labels, "Total Bkg")
-    end
+Plot signal and background histograms overlaid, optionally with a cumulative
+S/√B significance panel below, and return the `Figure`.
 
-    if plot_s_sqrt_b
-        ratioax = CairoMakie.Axis(fig[2, 1]; xlabel, ylabel=L"\fontfamily{TeXGyreHeros} S / \sqrt{B}", tellwidth=true)
-        significance_hist = Hist1D(; binedges=binedges(signal_hists_norm[1]))
-
-        for (ibin, center) in enumerate(bincenters(significane_hist)[1:end-1])
-            tot_signal = 0
-            for hist in signal_hists_norm
-                tot_signal += sum(bincounts(hist))[ibin:end]
-            end
-
-            tot_bkg = 0
-            for hist in bkg_hists_norm
-                tot_bkg += sum(bincounts(hist))[ibin:end]
-            end
-
-            atomic_push!(significance_hist, center, tot_signal/sqrt(tot_bkg))
-        end
-
-        stephist!(ragtioax, significance_hist; color=CairoMakie.Makie.wong_colors()[2])
-        CairoMakie.linkxaxes!(ratioax, ax)
-        CairoMakie.hidexdecorations!(ax; minorticks=false, ticks=false)
-        CairoMakie.rowsize!(fig.layout, 2, CairoMakie.Makie.Relative(1/5))
-    end
-
-    Legend(fig[1,2], elements, hist_labels, "Legend")
-
-    if ATLAS_label !== nothing
-        add_ATLAS_internal!(ax, ATLAS_label; offset=ATLAS_label_offset)
-    end
-
-    CairoMakie.current_figure()
+!!! note
+    This is a convenience wrapper around [`multi_plot`](@ref). For more control
+    use `multi_plot` directly with `signal_hists`, `lower_panel=:s_sqrt_b`, and
+    `legend_position=:side`.
+"""
+function plot_signal_vs_background(signal_hists, bkg_hists, title, xlabel, ylabel,
+                                   signal_labels, bkg_labels;
+                                   normalize_hists="", stack=false,
+                                   plot_s_sqrt_b=true,
+                                   color=ATLAS_colors,
+                                   options=HEPPlotOptions())
+    multi_plot(bkg_hists, title, xlabel, ylabel, bkg_labels;
+               signal_hists, signal_labels,
+               normalize_hists, stack,
+               lower_panel=plot_s_sqrt_b ? :s_sqrt_b : :none,
+               plot_errors=true, color,
+               legend_position=:side,
+               options=options)
 end

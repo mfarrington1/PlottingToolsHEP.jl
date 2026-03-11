@@ -7,7 +7,15 @@ h4 = Hist2D((randn(10000), randn(10000)))
 
 set_ATLAS_theme()
 
-plot_hist(h1, "", L"$p_T$ [GeV]", "Events"; ATLAS_label="Internal", limits=((-6, 6), (0, 1000)), normalize_hist=false, energy=13)
+plot_hist(h1, "", L"$p_T$ [GeV]", "Events";
+          normalize_hist=false,
+          options=HEPPlotOptions(ATLAS_label="Internal", limits=((-6, 6), (0, 1000)), energy=13))
+
 plot_hist(h4, "", L"\eta", L"\phi"; colorbar_label="Events")
-plot_comparison(h1, h2, "", L"\eta", "Events", "h1", "h2", "h1/h2"; ATLAS_label="Internal", energy=14)
-multi_plot([h1, h2, h3], "", L"$p_T$ [GeV]", "Events", ["h1", "h2", "h3"]; ATLAS_label="Internal", stack=true)
+
+plot_comparison(h1, h2, "", L"\eta", "Events", "h1", "h2", "h1/h2";
+                options=HEPPlotOptions(ATLAS_label="Internal", energy=14))
+
+multi_plot([h1, h2, h3], "", L"$p_T$ [GeV]", "Events", ["h1", "h2", "h3"];
+           stack=true,
+           options=HEPPlotOptions(ATLAS_label="Internal"))

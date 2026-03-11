@@ -3,7 +3,7 @@
 layout: home
 
 hero:
-  name: "HEPAnalysisTools.jl"
+  name: "PlottingToolsHEP.jl"
   text: Plotting and Other Julia Analysis Tools for HEP
   actions:
     - theme: brand
