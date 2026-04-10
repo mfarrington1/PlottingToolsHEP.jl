@@ -1,3 +1,15 @@
+"""
+    event_display(jets, largeR_jets, leptons;
+                  η_range=-2.5:0.5:2.5, ϕ_range=-3.15:0.45:3.15,
+                  jet_R=0.4, largeR_jet_R=1.0,
+                  element_labels=["Electrons", "Large R Jets", "Jets"])
+
+Draw a 2-D (η, ϕ) event display for `jets`, `largeR_jets`, and `leptons`.
+
+Each object must support `eta()` and `phi()` from LorentzVectorHEP. Jets and
+large-R jets are drawn as circles of radius `jet_R` and `largeR_jet_R` respectively.
+Returns the `Figure`.
+"""
 function event_display(jets, largeR_jets, leptons; η_range =-2.5:0.5:2.5, ϕ_range =-3.15:0.45:3.15, jet_R = 0.4, largeR_jet_R = 1.0, element_labels=["Electrons", "Large R Jets", "Jets"])
 
     CairoMakie.activate!(type="png")
