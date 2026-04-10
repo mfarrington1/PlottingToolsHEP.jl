@@ -56,7 +56,7 @@ function plot_hist(hist, title, xlabel, ylabel;
         ax, hm = CairoMakie.heatmap(fig[1, 1], hist_norm;
                      axis=(; title, xlabel, ylabel,
                              xscale=options.xscale, yscale=options.yscale,
-                             xticks=options.xticks, yticks=options.yticks);
+                             xticks=options.xticks, yticks=options.yticks),
                      colorscale, colorrange)
         CairoMakie.Colorbar(fig[1, 2], hm; label=colorbar_label, ticks=colticks)
     end
@@ -129,13 +129,13 @@ function multi_plot(hists, title, xlabel, ylabel, hist_labels;
     # ── draw main histograms ──────────────────────────────────────────────────
     if stack
         stackedhist!(ax, norm_hists; color, errorcolor=(:white, 0.0))
-        elements = [PolyElement(polycolor=color[i]) for i in 1:length(hist_labels)]
+        elements = Any[PolyElement(polycolor=color[i]) for i in 1:length(hist_labels)]
     else
         for (i, hist) in enumerate(norm_hists)
             CairoMakie.stephist!(ax, hist; clamp_bincounts=true, color=color[i])
             plot_errors && CairoMakie.errorbars!(ax, hist; whiskerwidth=6, clamp_errors=true, color=color[i])
         end
-        elements = [LineElement(linecolor=color[i]) for i in 1:length(hist_labels)]
+        elements = Any[LineElement(linecolor=color[i]) for i in 1:length(hist_labels)]
     end
 
     # ── draw signal histograms (dashed) ───────────────────────────────────────
