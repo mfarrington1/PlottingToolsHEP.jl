@@ -1,33 +1,25 @@
 using Documenter
-using DocumenterVitepress
 using PlottingToolsHEP
 
-repopath = if haskey(ENV, "GITHUB_ACTION")
-    "github.com/mfarrington1/PlottingToolsHEP.jl"
-else
-    "gitlab.cern.ch/PlottingToolsHEP-jl"
-end
-
-deploy_url = if haskey(ENV, "GITHUB_ACTION")
-    nothing
-else
-    "PlottingToolsHEP-jl.docs.cern.ch"
-end
-
 makedocs(;
-         modules=[PlottingToolsHEP],
-         format=DocumenterVitepress.MarkdownVitepress(; repo = repopath, devbranch = "main", devurl = "dev", deploy_url),
-         pages=[
-                "Introduction" => "index.md",
-                "Internal APIs" => "internalapis.md",
-               ],
-         repo="https://$repopath/blob/{commit}{path}#L{line}",
-         sitename="PlottingToolsHEP.jl",
-         authors="Michael Farrington",
-        )
+    modules  = [PlottingToolsHEP],
+    sitename = "PlottingToolsHEP.jl",
+    authors  = "Michael Farrington",
+    repo     = "https://github.com/mfarrington1/PlottingToolsHEP.jl/blob/{commit}{path}#{line}",
+    format   = Documenter.HTML(;
+        prettyurls = get(ENV, "CI", "false") == "true",
+        canonical  = "https://mfarrington1.github.io/PlottingToolsHEP.jl",
+        edit_link  = "main",
+    ),
+    pages = [
+        "Home"          => "index.md",
+        "Usage"         => "usage.md",
+        "API Reference" => "api.md",
+    ],
+)
 
-        
 deploydocs(;
-           repo=repopath,
-           branch = "gh-pages",
-          )
+    repo      = "github.com/mfarrington1/PlottingToolsHEP.jl",
+    devbranch = "main",
+    push_preview = true,
+)
