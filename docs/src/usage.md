@@ -142,7 +142,7 @@ fig = multi_plot(
     [h1, h2, h3], "", L"$p_T$ [GeV]", "Events",
     ["bkg 1", "bkg 2", "bkg 3"];
     stack   = true,
-    options = HEPPlotOptions(ATLAS_label = "Internal", normalize="individual"),
+    options = HEPPlotOptions(ATLAS_label = "Internal"),
 )
 ```
 
