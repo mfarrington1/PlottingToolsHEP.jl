@@ -2,6 +2,17 @@
 
 All examples below assume the following setup:
 
+```@setup plots
+using PlottingToolsHEP, FHist, CairoMakie, Random
+
+Random.seed!(42)
+h1 = Hist1D(randn(10_000);           binedges = -6:0.1:6)
+h2 = Hist1D(2 .* randn(10_000);      binedges = -6:0.1:6)
+h3 = Hist1D(randn(10_000) .+ 1;      binedges = -6:0.1:6)
+h4 = Hist2D((randn(10_000), randn(10_000)))
+set_ATLAS_theme()
+```
+
 ```julia
 using PlottingToolsHEP, FHist, CairoMakie, Random
 
@@ -72,7 +83,7 @@ All fields have sensible defaults, so `HEPPlotOptions()` gives a plain, unlabell
 
 ### 1-D histogram
 
-```julia
+```@example plots
 fig = plot_hist(h1, "My Title", L"$p_T$ [GeV]", "Events";
                 normalize_hist = false,
                 options = HEPPlotOptions(
@@ -84,7 +95,7 @@ fig = plot_hist(h1, "My Title", L"$p_T$ [GeV]", "Events";
 
 Normalize to unit area with `normalize_hist = true`. Supply a `label` string to activate a legend:
 
-```julia
+```@example plots
 fig = plot_hist(h1, "", L"$p_T$ [GeV]", "Events / 0.1 GeV";
                 label          = "Signal MC",
                 normalize_hist = true)
@@ -92,7 +103,7 @@ fig = plot_hist(h1, "", L"$p_T$ [GeV]", "Events / 0.1 GeV";
 
 ### 2-D histogram (heatmap)
 
-```julia
+```@example plots
 fig = plot_hist(h4, "", L"$\eta$", L"$\phi$";
                 colorbar_label = "Events",
                 colorscale     = identity,
@@ -116,7 +127,7 @@ overlays, data scatter points, and lower sub-panels.
 
 ### Basic overlay
 
-```julia
+```@example plots
 fig = multi_plot(
     [h1, h2, h3], "", L"$p_T$ [GeV]", "Events",
     ["Sample A", "Sample B", "Sample C"];
@@ -126,7 +137,7 @@ fig = multi_plot(
 
 ### Stacked histogram
 
-```julia
+```@example plots
 fig = multi_plot(
     [h1, h2, h3], "", L"$p_T$ [GeV]", "Events",
     ["bkg 1", "bkg 2", "bkg 3"];
@@ -143,7 +154,7 @@ Control normalization with `normalize_hists`:
 - `"individual"` — each histogram normalized to unit area
 - `"total"` — all histograms scaled to a common integral
 
-```julia
+```@example plots
 fig = multi_plot(
     [h1, h2, h3], "", L"$p_T$ [GeV]", "Normalized",
     ["h1", "h2", "h3"];
@@ -155,7 +166,7 @@ fig = multi_plot(
 
 Pass `data_hist` and set `lower_panel = :ratio` to draw a ratio sub-panel below the main axis:
 
-```julia
+```@example plots
 fig = multi_plot(
     [h2, h3], "", L"$p_T$ [GeV]", "Events", ["MC 1", "MC 2"];
     data_hist       = h1,
@@ -169,7 +180,7 @@ fig = multi_plot(
 
 ### Signal + background with S/√B panel
 
-```julia
+```@example plots
 fig = multi_plot(
     [h2, h3], "", L"$p_T$ [GeV]", "Events", ["bkg 1", "bkg 2"];
     signal_hists    = [h1],
@@ -187,7 +198,7 @@ fig = multi_plot(
 [`plot_comparison`](@ref) is a convenience wrapper around `multi_plot` that overlays two histograms
 and draws a ratio panel. The second histogram appears as the "data" over the first "MC".
 
-```julia
+```@example plots
 fig = plot_comparison(
     h1, h2,
     "", L"$\eta$", "Events",
@@ -199,7 +210,7 @@ fig = plot_comparison(
 
 Set `plot_as_data = [false, true]` to draw the second histogram as scatter points:
 
-```julia
+```@example plots
 fig = plot_comparison(
     h1, h2,
     "", L"$\eta$", "Events",
@@ -218,7 +229,7 @@ fig = plot_comparison(
 signal histograms (dashed lines) on background histograms, with an optional cumulative S/√B
 significance panel and a side legend.
 
-```julia
+```@example plots
 fig = plot_signal_vs_background(
     [h1],       # signal histograms
     [h2, h3],   # background histograms
@@ -240,14 +251,14 @@ Set `plot_s_sqrt_b = false` to suppress the S/√B sub-panel.
 [`event_display`](@ref) draws a 2-D (η, ϕ) event display. Every physics object must expose `eta()`
 and `phi()` from `LorentzVectorHEP`.
 
-```julia
+```@example plots
 using LorentzVectorHEP
 
-jets      = [LorentzVector(50.0,  1.0,  0.5, 0.0)]
-large_R   = [LorentzVector(200.0, 0.2,  2.5, 0.0)]
-leptons   = [LorentzVector(40.0, -1.2, -1.0, 0.0)]
+jets    = [LorentzVector(50.0,  1.0,  0.5, 0.0)]
+largeR  = [LorentzVector(200.0, 0.2,  2.5, 0.0)]
+leptons = [LorentzVector(40.0, -1.2, -1.0, 0.0)]
 
-fig = event_display(jets, large_R, leptons;
+fig = event_display(jets, largeR, leptons;
                     η_range        = -2.5:0.5:2.5,
                     ϕ_range        = -3.15:0.45:3.15,
                     jet_R          = 0.4,
@@ -264,11 +275,12 @@ Leptons are drawn as scatter points.
 
 For custom figures where you manage the `Axis` yourself, call [`add_ATLAS_internal!`](@ref) directly:
 
-```julia
+```@example plots
 fig = Figure()
 ax  = Axis(fig[1, 1]; xlabel = L"$p_T$ [GeV]", ylabel = "Events")
 stephist!(ax, h1)
 add_ATLAS_internal!(ax, "Internal"; offset = (30, -20), fontsize = 20, energy = 13.6)
+fig
 ```
 
 The first positional argument after `ax` is the secondary descriptor placed after the italic
