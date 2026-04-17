@@ -46,17 +46,23 @@ function plot_hist(hist, title, xlabel, ylabel;
              (0, 1.05 * maximum(bincounts(hist_norm)))) :
             options.limits
         ax = CairoMakie.Axis(fig[1, 1]; xlabel, ylabel, title,
-                              yscale=options.yscale, limits,
-                              xticks=options.xticks, yticks=options.yticks)
+                              xscale=options.xscale, yscale=options.yscale,
+                              xticks=options.xticks, yticks=options.yticks,
+                              limits)
         CairoMakie.stephist!(ax, hist_norm; label)
         CairoMakie.errorbars!(ax, hist_norm; whiskerwidth=6)
         label !== nothing && CairoMakie.axislegend()
 
     elseif hist isa Hist2D
+        limits = options.limits === (nothing, nothing) ?
+            ((minimum(binedges(hist_norm)[1]), maximum(binedges(hist_norm)[1])),
+             (minimum(binedges(hist_norm)[2]), maximum(binedges(hist_norm)[2]))) :
+            options.limits
         ax, hm = CairoMakie.heatmap(fig[1, 1], hist_norm;
                      axis=(; title, xlabel, ylabel,
                              xscale=options.xscale, yscale=options.yscale,
-                             xticks=options.xticks, yticks=options.yticks),
+                             xticks=options.xticks, yticks=options.yticks,
+                             limits),
                      colorscale, colorrange)
         CairoMakie.Colorbar(fig[1, 2], hm; label=colorbar_label, ticks=colticks)
     end
