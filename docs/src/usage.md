@@ -285,3 +285,85 @@ fig
 
 The first positional argument after `ax` is the secondary descriptor placed after the italic
 "ATLAS" text, e.g. `"Internal"`, `"Simulation"`, or `"Preliminary"`.
+
+---
+
+## Python usage via juliacall
+
+PlottingToolsHEP.jl ships a Python companion module at `python/plottingtoolshep.py`
+that exposes the full plotting API with a numpy-friendly interface.
+
+### Installation
+
+```bash
+pip install juliacall numpy
+```
+
+Register the Julia package for development (one-time):
+
+```bash
+julia --project -e 'using Pkg; Pkg.develop(path="/path/to/PlottingToolsHEP.jl")'
+```
+
+### Importing
+
+```python
+import sys
+sys.path.insert(0, "/path/to/PlottingToolsHEP.jl/python")
+import plottingtoolshep as pth
+```
+
+### Plotting a 1-D histogram from NumPy arrays
+
+Pass a `(counts, edges)` tuple anywhere a `Hist1D` is expected:
+
+```python
+import numpy as np
+
+counts, edges = np.histogram(np.random.normal(0, 1, 10_000), bins=40, range=(-4, 4))
+
+fig = pth.plot_hist(
+    (counts.astype(float), edges),
+    "My Distribution", r"$p_T$ [GeV]", "Events",
+    options=pth.HEPPlotOptions(ATLAS_label="Internal", energy=13.6),
+)
+pth.save_figure(fig, "my_plot.png")
+```
+
+### Multi-histogram overlay with a ratio panel
+
+`lower_panel` and `legend_position` accept plain Python strings — no Julia
+`Symbol` syntax needed:
+
+```python
+fig = pth.multi_plot(
+    [(counts_mc1, edges), (counts_mc2, edges)],
+    "Data / MC comparison", r"$p_T$ [GeV]", "Events",
+    ["MC 1", "MC 2"],
+    data_hist=(counts_data, edges),
+    data_label="Data",
+    lower_panel="ratio",
+    legend_position="inside",
+)
+pth.save_figure(fig, "ratio_plot.png")
+```
+
+### Signal vs. background with S/√B
+
+```python
+fig = pth.plot_signal_vs_background(
+    [(sig_counts, edges)],
+    [(bkg_counts, edges)],
+    "Signal vs Background", r"$m_{jj}$ [GeV]", "Events",
+    ["Signal"], ["Background"],
+    plot_s_sqrt_b=True,
+)
+pth.save_figure(fig, "svb_plot.png")
+```
+
+### Color palettes
+
+```python
+print(pth.ATLAS_colors)  # ['#3f90da', '#ffa912', ...]
+print(pth.gaudi_colors)  # ['#cb181d', '#fa6a4a', ...]
+```

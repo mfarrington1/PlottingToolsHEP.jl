@@ -1,3 +1,41 @@
+# ── Python / string interoperability helpers ──────────────────────────────────
+
+"""
+    _sym(s) -> Symbol
+
+Normalise a keyword argument that may arrive as either a `Symbol` or a plain
+`String` into a `Symbol`.  Lets Python callers pass `"ratio"` instead of `:ratio`.
+"""
+_sym(s::Symbol)         = s
+_sym(s::AbstractString) = Symbol(s)
+
+"""
+    _to_hist1d(h) -> Hist1D
+
+Accept either a ready-made `Hist1D` or a 2-tuple `(counts, edges)` of array-like
+objects (e.g. NumPy arrays passed via juliacall) and return a `Hist1D`.
+Counts and edges are converted to `Float64` when constructing from a tuple.
+"""
+_to_hist1d(h::Hist1D) = h
+function _to_hist1d(t::Tuple)
+    counts = Float64.(t[1])
+    Hist1D(; bincounts=counts, binedges=Float64.(t[2]),
+             sumw2=counts, nentries=Int(round(sum(counts))), overflow=false)
+end
+
+"""
+    _to_hist2d(h) -> Hist2D
+
+Accept either a ready-made `Hist2D` or a 3-tuple `(counts_matrix, xedges, yedges)` and
+return a `Hist2D`.  Arrays are converted to `Float64`.
+"""
+_to_hist2d(h::Hist2D) = h
+function _to_hist2d(t::Tuple)
+    counts = Float64.(t[1])
+    Hist2D(; bincounts=counts, binedges=(Float64.(t[2]), Float64.(t[3])),
+             sumw2=counts, nentries=Int(round(sum(counts))), overflow=false)
+end
+
 # ── internal helper ──────────────────────────────────────────────────────────
 
 # Add a statistics box to a figure layout cell.
@@ -29,6 +67,10 @@ Plot a single `Hist1D` or `Hist2D` and return the `Figure`.
 `Hist2D` entries are displayed as heatmaps with a colour bar; use `colticks`,
 `colorbar_label`, `colorscale`, and `colorrange` to control it.
 Common axis options (scale, ticks, limits, ATLAS label) are bundled in `options`.
+
+`hist` may also be a plain tuple: a 2-tuple `(counts, edges)` is converted to a
+`Hist1D`; a 3-tuple `(counts_matrix, xedges, yedges)` is converted to a `Hist2D`.
+This allows NumPy arrays to be passed directly from Python via juliacall.
 """
 function plot_hist(hist, title, xlabel, ylabel;
                    label=nothing, normalize_hist=false,
@@ -36,6 +78,7 @@ function plot_hist(hist, title, xlabel, ylabel;
                    colorscale=identity, colorrange=Makie.automatic,
                    options=HEPPlotOptions())
 
+    hist = hist isa Tuple ? (length(hist) == 2 ? _to_hist1d(hist) : _to_hist2d(hist)) : hist
     CairoMakie.activate!(type="png")
     fig = CairoMakie.Figure()
     hist_norm = normalize_hist ? normalize(hist) : hist
@@ -101,6 +144,11 @@ Overlay multiple histograms on one axis and return the `Figure`.
   - `:s_sqrt_b` – cumulative S/√B panel (requires `signal_hists`)
 - `color`: vector of colours matched to `hist_labels` (default: `ATLAS_colors`).
 - `legend_position`: `:inside` (default, overlaid on axis) or `:side` (fig[1,2]).
+
+`lower_panel` and `legend_position` also accept plain `String`s (e.g. `"ratio"`,
+`"inside"`) so Python callers do not need to construct Julia `Symbol` objects.
+Each element of `hists`, `signal_hists`, and `data_hist` may be a 2-tuple
+`(counts, edges)` instead of a `Hist1D`; NumPy arrays are accepted via juliacall.
 """
 function multi_plot(hists, title, xlabel, ylabel, hist_labels;
                     signal_hists=nothing, signal_labels=String[],
@@ -111,6 +159,12 @@ function multi_plot(hists, title, xlabel, ylabel, hist_labels;
                     legend_position=:inside,
                     legend_align=(valign=0.95, halign=0.95),
                     options=HEPPlotOptions())
+
+    lower_panel     = _sym(lower_panel)
+    legend_position = _sym(legend_position)
+    hists           = [_to_hist1d(h) for h in hists]
+    signal_hists    = signal_hists === nothing ? nothing : [_to_hist1d(h) for h in signal_hists]
+    data_hist       = data_hist    === nothing ? nothing : _to_hist1d(data_hist)
 
     CairoMakie.activate!(type="png")
     fig    = CairoMakie.Figure()
@@ -230,6 +284,8 @@ Plot two histograms overlaid with a ratio panel below and return the `Figure`.
 Set `plot_as_data[i] = true` to draw the i-th histogram as scatter points instead
 of a step histogram.
 
+`hist1` and `hist2` may each be a 2-tuple `(counts, edges)` instead of a `Hist1D`.
+
 !!! note
     This is a convenience wrapper around [`multi_plot`](@ref). For more control
     (stacking, signal overlay, S/√B panel) use `multi_plot` directly.
@@ -238,6 +294,8 @@ function plot_comparison(hist1, hist2, title, xlabel, ylabel,
                          hist1_label, hist2_label, comp_label;
                          normalize_hists=true, plot_as_data=[false, false],
                          options=HEPPlotOptions())
+    hist1 = _to_hist1d(hist1)
+    hist2 = _to_hist1d(hist2)
     norm = normalize_hists ? "individual" : ""
     style2 = plot_as_data[2] ? "scatter" : "stephist"
     # hist1 is the reference; hist2 is treated as the "data" overlay so the
@@ -251,6 +309,64 @@ function plot_comparison(hist1, hist2, title, xlabel, ylabel,
 end
 
 """
+    plot_line(x, y, title, xlabel, ylabel;
+              label=nothing, color=Makie.wong_colors(),
+              linestyle=:solid, marker=nothing, markersize=8,
+              options=HEPPlotOptions())
+
+Plot one or more lines from `x` and `y` data and return the `Figure`.
+
+Pass plain vectors for a single series, or vectors of vectors for multiple series.
+`label`, `color`, and `linestyle` may each be a scalar (applied to all series) or a
+vector matching the number of series.
+
+Set `marker` to a Makie marker symbol (e.g. `:circle`, `:utriangle`) to draw a
+marker at each data point in addition to the line.
+"""
+function plot_line(x, y, title, xlabel, ylabel;
+                  label=nothing, color=Makie.wong_colors(),
+                  linestyle=:solid, marker=nothing, markersize=8,
+                  options=HEPPlotOptions())
+
+    CairoMakie.activate!(type="png")
+    fig = CairoMakie.Figure()
+
+    limits_kw = options.limits === (nothing, nothing) ? (;) : (; limits=options.limits)
+    ax = CairoMakie.Axis(fig[1, 1]; xlabel, ylabel, title,
+                         xscale=options.xscale, yscale=options.yscale,
+                         xticks=options.xticks, yticks=options.yticks,
+                         limits_kw...)
+
+    xs         = x isa AbstractVector{<:AbstractVector} ? x : [x]
+    ys         = y isa AbstractVector{<:AbstractVector} ? y : [y]
+    labels     = label     === nothing         ? fill(nothing, length(xs)) :
+                 label     isa AbstractVector  ? label     : fill(label,     length(xs))
+    colors     = color     isa AbstractVector  ? color     : fill(color,     length(xs))
+    linestyles = linestyle isa AbstractVector  ? linestyle : fill(linestyle, length(xs))
+
+    for i in eachindex(xs)
+        c  = colors[mod1(i, length(colors))]
+        kw = (color=c, linestyle=linestyles[i])
+        label_kw = labels[i] !== nothing ? (; label=labels[i]) : (;)
+        if marker !== nothing
+            CairoMakie.scatterlines!(ax, xs[i], ys[i]; kw..., label_kw...,
+                                     marker, markersize)
+        else
+            CairoMakie.lines!(ax, xs[i], ys[i]; kw..., label_kw...)
+        end
+    end
+
+    any(!isnothing, labels) && CairoMakie.axislegend(ax)
+
+    if options.ATLAS_label !== nothing
+        add_ATLAS_internal!(ax, options.ATLAS_label;
+                            offset=options.ATLAS_label_offset, energy=options.energy)
+    end
+
+    CairoMakie.current_figure()
+end
+
+"""
     plot_signal_vs_background(signal_hists, bkg_hists, title, xlabel, ylabel,
                               signal_labels, bkg_labels;
                               normalize_hists="", stack=false,
@@ -259,6 +375,9 @@ end
 
 Plot signal and background histograms overlaid, optionally with a cumulative
 S/√B significance panel below, and return the `Figure`.
+
+Each element of `signal_hists` and `bkg_hists` may be a 2-tuple `(counts, edges)`
+instead of a `Hist1D`.
 
 !!! note
     This is a convenience wrapper around [`multi_plot`](@ref). For more control
@@ -271,6 +390,8 @@ function plot_signal_vs_background(signal_hists, bkg_hists, title, xlabel, ylabe
                                    plot_s_sqrt_b=true,
                                    color=ATLAS_colors,
                                    options=HEPPlotOptions())
+    signal_hists = [_to_hist1d(h) for h in signal_hists]
+    bkg_hists    = [_to_hist1d(h) for h in bkg_hists]
     multi_plot(bkg_hists, title, xlabel, ylabel, bkg_labels;
                signal_hists, signal_labels,
                normalize_hists, stack,
