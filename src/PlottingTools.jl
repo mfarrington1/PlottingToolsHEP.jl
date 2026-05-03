@@ -1,21 +1,10 @@
 # ── Python / string interoperability helpers ──────────────────────────────────
 
-"""
-    _sym(s) -> Symbol
-
-Normalise a keyword argument that may arrive as either a `Symbol` or a plain
-`String` into a `Symbol`.  Lets Python callers pass `"ratio"` instead of `:ratio`.
-"""
+# Normalise a Symbol-or-String kwarg to Symbol; lets Python callers pass "ratio" instead of :ratio.
 _sym(s::Symbol)         = s
 _sym(s::AbstractString) = Symbol(s)
 
-"""
-    _to_hist1d(h) -> Hist1D
-
-Accept either a ready-made `Hist1D` or a 2-tuple `(counts, edges)` of array-like
-objects (e.g. NumPy arrays passed via juliacall) and return a `Hist1D`.
-Counts and edges are converted to `Float64` when constructing from a tuple.
-"""
+# Accept a ready-made Hist1D or a (counts, edges) tuple and return a Hist1D.
 _to_hist1d(h::Hist1D) = h
 function _to_hist1d(t::Tuple)
     counts = Float64.(t[1])
@@ -23,12 +12,7 @@ function _to_hist1d(t::Tuple)
              sumw2=counts, nentries=Int(round(sum(counts))), overflow=false)
 end
 
-"""
-    _to_hist2d(h) -> Hist2D
-
-Accept either a ready-made `Hist2D` or a 3-tuple `(counts_matrix, xedges, yedges)` and
-return a `Hist2D`.  Arrays are converted to `Float64`.
-"""
+# Accept a ready-made Hist2D or a (counts_matrix, xedges, yedges) tuple and return a Hist2D.
 _to_hist2d(h::Hist2D) = h
 function _to_hist2d(t::Tuple)
     counts = Float64.(t[1])

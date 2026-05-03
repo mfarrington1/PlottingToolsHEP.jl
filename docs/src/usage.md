@@ -246,6 +246,37 @@ Set `plot_s_sqrt_b = false` to suppress the S/√B sub-panel.
 
 ---
 
+## Line plots — `plot_line`
+
+[`plot_line`](@ref) draws one or more lines from plain `x` and `y` vectors and returns a `Figure`.
+
+```@example plots
+x = range(0, 2π; length=200)
+fig = plot_line(collect(x), sin.(x), "Sine wave", L"$x$", L"$\sin(x)$";
+                label = "sin(x)",
+                options = HEPPlotOptions(ATLAS_label = "Internal"))
+```
+
+Pass vectors of vectors to overlay multiple series:
+
+```@example plots
+xs = [collect(x), collect(x)]
+ys = [sin.(x), cos.(x)]
+fig = plot_line(xs, ys, "Trig functions", L"$x$", "Value";
+                label = ["sin(x)", "cos(x)"],
+                linestyle = [:solid, :dash])
+```
+
+Add markers at each data point with the `marker` keyword:
+
+```@example plots
+xpts = collect(range(0, 2π; length=15))
+fig = plot_line(xpts, sin.(xpts), "Sampled sine", L"$x$", L"$\sin(x)$";
+                marker = :circle, markersize = 10, label = "samples")
+```
+
+---
+
 ## Event display — `event_display`
 
 [`event_display`](@ref) draws a 2-D (η, ϕ) event display. Every physics object must expose `eta()`

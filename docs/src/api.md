@@ -18,6 +18,7 @@ HEPPlotOptions
 
 ```@docs
 plot_hist
+plot_line
 multi_plot
 plot_comparison
 plot_signal_vs_background
