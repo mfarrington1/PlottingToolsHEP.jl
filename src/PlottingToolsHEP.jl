@@ -2,7 +2,6 @@ module PlottingToolsHEP
 using Makie, CairoMakie
 using ColorSchemes
 using FHist
-using JSON
 using LorentzVectorHEP
 using MathTeXEngine
 
