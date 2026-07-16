@@ -219,6 +219,68 @@ def plot_hist(
     return _jl_pkg.plot_hist(hist, title, xlabel, ylabel, **kwargs)
 
 
+def plot_hist_projections(
+    hist,
+    x: float,
+    y: float,
+    title: str,
+    xlabel: str,
+    ylabel: str,
+    *,
+    window_bins: int = 1,
+    colorbar_label: str = "",
+    colticks=None,
+    colorscale=None,
+    colorrange=None,
+    options=None,
+):
+    """
+    Plot a 2-D histogram as a heatmap with its x and y projections at the point
+    ``(x, y)`` and return the Makie ``Figure``.
+
+    The x projection (top panel) is the slice along x at the y bin containing
+    ``y``; the y projection (right panel) is the slice along y at the x bin
+    containing ``x``.  A crosshair marks the chosen point.
+
+    Parameters
+    ----------
+    hist : Julia Hist2D proxy, or tuple
+        Pass a 3-tuple ``(counts_matrix, xedges, yedges)``; NumPy arrays are
+        accepted and converted automatically.
+    x, y : float
+        Point in the plane at which the projections are taken.  Points outside
+        the histogram range are clamped to the nearest bin.
+    title, xlabel, ylabel : str
+        Axis title and labels.
+    window_bins : int
+        Sum each slice over this many bins (odd) centred on the cursor bin.
+    colorbar_label : str
+        Label next to the colorbar.
+    colticks : array-like, optional
+        Explicit tick positions for the colorbar.
+    colorscale : Julia function, optional
+        Color scale for the heatmap (e.g. ``jl.log10``).
+    colorrange : tuple, optional
+        ``(min, max)`` color range for the heatmap.
+    options : Julia ``HEPPlotOptions`` proxy, optional
+        Created via :func:`HEPPlotOptions`.
+
+    Returns
+    -------
+    Makie ``Figure`` proxy.  Save with :func:`save_figure`.
+    """
+    hist = _to_hist2d(hist)
+    kwargs: dict = {
+        "window_bins": window_bins,
+        "colorbar_label": colorbar_label,
+    }
+    if colticks   is not None: kwargs["colticks"]   = colticks
+    if colorscale is not None: kwargs["colorscale"] = colorscale
+    if colorrange is not None: kwargs["colorrange"] = colorrange
+    if options    is not None: kwargs["options"]    = options
+    return _jl_pkg.plot_hist_projections(hist, x, y, title, xlabel, ylabel, **kwargs)
+
+
 def plot_line(
     x,
     y,

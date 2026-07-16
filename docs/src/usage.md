@@ -120,6 +120,54 @@ fig = plot_hist(h4, "", L"$\eta$", L"$\phi$";
 
 ---
 
+## 2D projections — `plot_hist_projections` and `interactive_projections`
+
+[`plot_hist_projections`](@ref) draws a `Hist2D` heatmap with marginal panels showing the x and y
+projections (slices) of the histogram at a chosen point, marked by a crosshair:
+
+```@example plots
+fig = plot_hist_projections(h4, 0.5, -0.3, "", L"$\eta$", L"$\phi$";
+                            window_bins    = 3,
+                            colorbar_label = "Events")
+```
+
+The top panel is the slice along x at the y bin containing the point; the right panel is the slice
+along y at the x bin containing it. `window_bins = n` (odd) sums each slice over `n` bins centred
+on the cursor bin.
+
+[`interactive_projections`](@ref) is the cursor-driven version: the crosshair and both projections
+follow the mouse live. It requires a backend that handles mouse events, so activate GLMakie or
+WGLMakie before displaying.
+
+Over SSH (e.g. VS Code Remote-SSH), use WGLMakie. Note that on a headless machine `display(fig)`
+starts a local web server but **cannot open a browser, so nothing appears on its own**. Fix the
+server port and open the page yourself:
+
+```julia
+using WGLMakie, Bonito
+Bonito.configure_server!(listen_port = 8765)
+WGLMakie.activate!()
+fig = interactive_projections(h4, "", L"$\eta$", L"$\phi$"; colorbar_label = "Events")
+display(fig)
+```
+
+The explicit `WGLMakie.activate!()` matters: every Makie backend activates itself when loaded, so
+the most recently *loaded* backend wins — `using WGLMakie, CairoMakie` (or loading this package,
+which pulls in CairoMakie, after WGLMakie) leaves CairoMakie active and the figure silently static.
+`interactive_projections` warns if a static backend is active when it is called.
+
+Then open `http://localhost:8765/browser-display` in your **local** browser — VS Code forwards the
+port automatically (check the *Ports* panel next to the terminal). WGLMakie and Bonito must be
+installed in your active environment (`Pkg.add(["WGLMakie", "Bonito"])`); they are deliberately not
+dependencies of this package.
+
+Run this from a plain `julia` in the terminal. The VS Code Julia extension's inline plot pane
+cannot render WGLMakie figures — if you use the extension's REPL, disable the plot pane
+(`Julia: Enable Plot Pane` setting) so the figure falls through to the browser display. GLMakie
+needs a local OpenGL context and generally does not work over SSH.
+
+---
+
 ## Overlaying multiple histograms — `multi_plot`
 
 [`multi_plot`](@ref) draws any number of histograms on one axis. It supports stacking, signal

@@ -24,6 +24,13 @@ plot_comparison
 plot_signal_vs_background
 ```
 
+## 2D Projections
+
+```@docs
+plot_hist_projections
+interactive_projections
+```
+
 ## Event Display
 
 ```@docs

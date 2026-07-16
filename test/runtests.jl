@@ -62,6 +62,32 @@ CairoMakie.activate!(type="png")
         @test fig isa Makie.Figure
     end
 
+    # ── projection explorer ──────────────────────────────────────────────────
+
+    @testset "plot_hist_projections" begin
+        fig = plot_hist_projections(h4, 0.5, -0.3, "Proj", "x", "y")
+        @test fig isa Makie.Figure
+    end
+
+    @testset "plot_hist_projections window and out-of-range point" begin
+        fig = plot_hist_projections(h4, 100.0, -100.0, "Proj", "x", "y";
+                                    window_bins=3, colorbar_label="Events")
+        @test fig isa Makie.Figure
+    end
+
+    @testset "plot_hist_projections from tuple" begin
+        fig = plot_hist_projections((counts_2d, xedges_2d, yedges_2d),
+                                    0.0, 0.0, "Proj", "x", "y")
+        @test fig isa Makie.Figure
+    end
+
+    @testset "interactive_projections builds headlessly" begin
+        # Under CairoMakie mouse events never fire, but the figure must still
+        # build and the listener must register without error.
+        fig = interactive_projections(h4, "Proj", "x", "y")
+        @test fig isa Makie.Figure
+    end
+
     # ── plot_comparison ──────────────────────────────────────────────────────
 
     @testset "plot_comparison" begin

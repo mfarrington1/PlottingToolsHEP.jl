@@ -13,6 +13,9 @@ plot_hist(h1, "", L"$p_T$ [GeV]", "Events";
 
 plot_hist(h4, "", L"\eta", L"\phi"; colorbar_label="Events")
 
+plot_hist_projections(h4, 0.5, -0.3, "", L"\eta", L"\phi";
+                      window_bins=3, colorbar_label="Events")
+
 plot_comparison(h1, h2, "", L"\eta", "Events", "h1", "h2", "h1/h2";
                 options=HEPPlotOptions(ATLAS_label="Internal", energy=14))
 
